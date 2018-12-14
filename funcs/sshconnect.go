@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"net"
+//	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -24,9 +24,25 @@ func connect(user, password, host, key string, port int, cipherList []string) (*
 		session      *ssh.Session
 		err          error
 	)
+
+        // get keyboardInteractiveChallenge
+        keyboardInteractiveChallenge := func(
+            user,
+            instruction string,
+            questions []string,
+            echos []bool,
+        ) (answers []string, err error) {
+            if len(questions) == 0 {
+                return []string{}, nil
+            }
+            return []string{password}, nil
+        }
+
 	// get auth method
 	auth = make([]ssh.AuthMethod, 0)
 	if key == "" {
+		//auth = append(auth, ssh.Password(password))
+		auth = append(auth, ssh.KeyboardInteractive(keyboardInteractiveChallenge))
 		auth = append(auth, ssh.Password(password))
 	} else {
 		pemBytes, err := ioutil.ReadFile(key)
@@ -61,9 +77,10 @@ func connect(user, password, host, key string, port int, cipherList []string) (*
 		Auth:    auth,
 		Timeout: 30 * time.Second,
 		Config:  config,
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
-		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+//		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+//			return nil
+//		},
 	}
 
 	// connet to ssh
